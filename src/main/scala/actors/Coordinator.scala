@@ -5,6 +5,7 @@ import messages._
 
 class Coordinator(cohort: Traversable[ActorRef]) extends Actor {
   private var notAgreedWorkersCount = cohort.size
+  private var pendingAck = notAgreedWorkersCount
 
   override def receive: Receive = {
     case TransactionBeginRequest() => beginTransaction()
@@ -41,6 +42,11 @@ class Coordinator(cohort: Traversable[ActorRef]) extends Actor {
   }
 
   private def preparingToCommit: Receive = {
-    case 
+    case CommitAck() => receiveCommitAck()
+  }
+
+  private def receiveCommitAck(): Unit = {
+    pendingAck -= 1
+    if(pendingAck == 0) context become receive
   }
 }
