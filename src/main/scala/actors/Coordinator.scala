@@ -1,19 +1,46 @@
 package actors
 
 import akka.actor.{Actor, ActorRef}
-import messages.CommitRequest
+import messages._
 
 class Coordinator(cohort: Traversable[ActorRef]) extends Actor {
+  private var notAgreedWorkersCount = cohort.size
+
   override def receive: Receive = {
-    case commitRequest: CommitRequest => receiveCommitRequest(commitRequest)
+    case TransactionBeginRequest() => beginTransaction()
+  }
+
+  private def beginTransaction(): Unit = {
+    context become initializer
   }
 
   private def initializer: Receive = {
-    case _ =>
+    case TransactionOperations(operations) => executeOperations(operations)
+    case commitRequest: TransactionCommitRequest => initializeCommit(commitRequest)
   }
 
-  private def receiveCommitRequest(commitRequest: CommitRequest): Unit = {
+  private def executeOperations(operations: Unit => Unit): Unit = {
+    cohort.foreach(_ ! operations)
+  }
+
+  private def initializeCommit(commitRequest: TransactionCommitRequest): Unit = {
     cohort.foreach(_ ! commitRequest)
-    context become initializer
+    context become tryingToWrite
+  }
+
+  private def tryingToWrite: Receive = {
+    case CommitAgree() => receiveAgree()
+  }
+
+  private def receiveAgree(): Unit = {
+    notAgreedWorkersCount -= 1
+    if(notAgreedWorkersCount == 0) {
+      cohort.foreach(_ ! PrepareToCommit())
+      context become preparingToCommit
+    }
+  }
+
+  private def preparingToCommit: Receive = {
+    case 
   }
 }

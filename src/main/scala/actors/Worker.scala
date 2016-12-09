@@ -1,10 +1,10 @@
 package actors
 
 import akka.actor.Actor
-import messages.CommitRequest
+import messages.TransactionCommitRequest
 
 class Worker extends Actor {
   override def receive: Receive = {
-    case commitRequest: CommitRequest =>
+    case commitRequest: TransactionCommitRequest =>
   }
 }
