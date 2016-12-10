@@ -6,9 +6,11 @@ import akka.actor.Actor
 import tpc.TransactionOperation
 import tpc.messages._
 
+import scala.collection.mutable
+
 class Worker extends Actor {
   var currentTransactionId: Option[UUID] = None
-  var executedOperations: List[TransactionOperation] = Nil
+  val executedOperations: mutable.MutableList[TransactionOperation] = mutable.MutableList()
 
   override def receive: Receive = {
     case TransactionBeginOrder(transactionId) => beginTransaction(transactionId)
@@ -26,7 +28,7 @@ class Worker extends Actor {
 
   private def executeOperation(operation: TransactionOperation): Unit = {
     operation.execute()
-    executedOperations = operation :: executedOperations
+    executedOperations += operation
   }
 
   private def waitForCommitDecision(): Unit = {
@@ -48,6 +50,6 @@ class Worker extends Actor {
   }
 
   private def doCommit(): Unit = {
-
+    executedOperations.foreach(_.commit())
   }
 }
