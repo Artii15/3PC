@@ -1,3 +1,3 @@
 package tpc.messages
 
-case class CommitConfirmation()
+case object CommitConfirmation

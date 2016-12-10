@@ -71,31 +71,40 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
     if(notAgreedWorkersCount == 0) {
       context.children.foreach(_ ! PrepareToCommit)
       pendingAck = coordinatorConfig.getCohortSize
+
+      val timeout = makeTimeoutForState(WAITING_ACK)
+      context.system.scheduler.scheduleOnce(coordinatorConfig.getWaitingAckTimeout seconds, self, timeout)
+
       context become preparingToCommit
     }
   }
 
   private def preparingToCommit: Receive = {
     case CommitAck => receiveCommitAck()
+    case Failure => doCommit()
+    case CoordinatorTimeout(transactionId, WAITING_ACK) if equalsCurrentTransactionId(transactionId) => abort()
   }
 
   private def receiveCommitAck(): Unit = {
     pendingAck -= 1
-    if(pendingAck == 0) {
-      transactionRequester.foreach(_ ! CommitConfirmation())
-      finishCurrentTransaction()
-    }
+    if(pendingAck == 0) doCommit()
   }
 
-  private def finishCurrentTransaction(): Unit = {
-    transactionRequester = None
-    currentTransactionId = None
-    context become receive
+  private def doCommit(): Unit = {
+    transactionRequester.foreach(_ ! CommitConfirmation)
+    cleanUpAfterTransaction()
   }
 
   private def abort(): Unit = {
     context.children.foreach(_ ! Abort)
-    finishCurrentTransaction()
+    transactionRequester.foreach(_! Abort)
+    cleanUpAfterTransaction()
+  }
+
+  private def cleanUpAfterTransaction(): Unit = {
+    transactionRequester = None
+    currentTransactionId = None
+    context become receive
   }
 
   private def makeTimeoutForState(coordinatorState: CoordinatorState) =
