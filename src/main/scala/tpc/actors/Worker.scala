@@ -1,7 +1,7 @@
-package actors
+package tpc.actors
 
 import akka.actor.Actor
-import messages.TransactionCommitRequest
+import tpc.messages.TransactionCommitRequest
 
 class Worker extends Actor {
   override def receive: Receive = {

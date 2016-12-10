@@ -1,4 +1,4 @@
-package actors.states
+package tpc.actors.states
 
 object CoordinatorState extends Enumeration {
   type CoordinatorState = Value

@@ -1,4 +1,4 @@
-package config
+package tpc.config
 
 trait CoordinatorConfig {
   def getWaitingAgreeTimeout: Int

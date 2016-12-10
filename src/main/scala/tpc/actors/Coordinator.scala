@@ -1,16 +1,17 @@
-package actors
+package tpc.actors
 
 import java.util.UUID
 
 import akka.actor.{Actor, ActorRef, Props}
-import config.CoordinatorConfig
-import messages._
-import scala.concurrent.ExecutionContext.Implicits.global
+import tpc.TransactionId
+import tpc.config.CoordinatorConfig
+import tpc.messages._
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
-  import actors.states.CoordinatorState._
+  import tpc.actors.states.CoordinatorState._
 
   private var notAgreedWorkersCount = 0
   private var pendingAck = 0

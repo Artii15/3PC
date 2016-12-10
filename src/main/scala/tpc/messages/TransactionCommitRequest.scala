@@ -1,3 +1,3 @@
-package messages
+package tpc.messages
 
 case object TransactionCommitRequest
