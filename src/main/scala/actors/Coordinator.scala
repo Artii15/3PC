@@ -6,7 +6,11 @@ import akka.actor.{Actor, ActorRef, Props}
 import config.CoordinatorConfig
 import messages._
 
+import scala.concurrent.duration._
+
 class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
+  import actors.states.CoordinatorState._
+
   private var notAgreedWorkersCount = 0
   private var pendingAck = 0
   private var transactionRequester: Option[ActorRef] = None
@@ -23,17 +27,22 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
   }
 
   private def beginTransaction(requester: ActorRef): Unit = {
+    val transactionUUID = UUID.randomUUID()
+    val timeoutInformation = CoordinatorTimeout(transactionUUID, INITIALIZING)
+    currentTransactionId = Some(transactionUUID)
     transactionRequester = Some(requester)
-    currentTransactionId = Some(UUID.randomUUID())
+
+    context.system.scheduler
+      .scheduleOnce(coordinatorConfig.getTransactionOperationsTimeout seconds, self, timeoutInformation)
     context become initializer
   }
 
   private def initializer: Receive = {
-    case TransactionOperations(operations) => executeOperations(operations)
+    case operations: TransactionOperations => executeOperations(operations)
     case TransactionCommitRequest => initializeCommit()
   }
 
-  private def executeOperations(operations: Unit => Unit): Unit = context.children.foreach(_ ! operations)
+  private def executeOperations(operations: TransactionOperations): Unit = context.children.foreach(_ ! operations)
 
   private def initializeCommit(): Unit = {
     context.children.foreach(_ ! TransactionCommitRequest)
@@ -55,15 +64,20 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
   }
 
   private def preparingToCommit: Receive = {
-    case CommitAck() => receiveCommitAck()
+    case CommitAck => receiveCommitAck()
   }
 
   private def receiveCommitAck(): Unit = {
     pendingAck -= 1
     if(pendingAck == 0) {
       transactionRequester.foreach(_ ! CommitConfirmation())
-      transactionRequester = None
+      finishCurrentTransaction()
       context become receive
     }
+  }
+
+  private def finishCurrentTransaction(): Unit = {
+    transactionRequester = None
+    currentTransactionId = None
   }
 }

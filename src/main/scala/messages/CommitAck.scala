@@ -1,3 +1,3 @@
 package messages
 
-case class CommitAck()
+case object CommitAck
