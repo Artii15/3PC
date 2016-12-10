@@ -1,3 +1,3 @@
 package messages
 
-case class CommitAgree()
+case object CommitAgree

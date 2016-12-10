@@ -1,3 +1,3 @@
 package messages
 
-case class PrepareToCommit()
+case object PrepareToCommit

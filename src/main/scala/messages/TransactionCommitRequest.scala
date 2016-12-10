@@ -1,3 +1,3 @@
 package messages
 
-case class TransactionCommitRequest()
+case object TransactionCommitRequest

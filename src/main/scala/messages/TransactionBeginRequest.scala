@@ -1,3 +1,5 @@
 package messages
 
-case class TransactionBeginRequest()
+import akka.actor.ActorRef
+
+case class TransactionBeginRequest(requester: ActorRef)
