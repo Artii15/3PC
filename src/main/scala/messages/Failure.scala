@@ -1,3 +1,3 @@
 package messages
 
-case class Failure()
+case object Failure

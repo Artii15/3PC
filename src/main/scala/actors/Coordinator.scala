@@ -24,26 +24,25 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
 
   override def receive: Receive = {
     case TransactionBeginRequest(requester) => beginTransaction(requester)
-    case unexpectedMessage => println(s"Unexpected message received during receive phase: $unexpectedMessage")
   }
 
   private def beginTransaction(requester: ActorRef): Unit = {
     val transactionUUID = UUID.randomUUID()
-    val timeoutInformation = CoordinatorTimeout(transactionUUID, INITIALIZING)
     currentTransactionId = Some(transactionUUID)
     transactionRequester = Some(requester)
 
     requester ! TransactionBeginAck
 
-    context.system.scheduler
-      .scheduleOnce(coordinatorConfig.getTransactionOperationsTimeout seconds, self, timeoutInformation)
+    val timeout = makeTimeoutForState(INITIALIZING)
+    context.system.scheduler.scheduleOnce(coordinatorConfig.getTransactionOperationsTimeout seconds, self, timeout)
     context become initializer
   }
 
   private def initializer: Receive = {
     case operations: TransactionOperations => executeOperations(operations)
     case TransactionCommitRequest => initializeCommit()
-    case CoordinatorTimeout(transactionId, INITIALIZING) if currentTransactionId.exists(_.equals(transactionId)) => abort()
+    case Failure
+         | CoordinatorTimeout(transactionId, INITIALIZING) if equalsCurrentTransactionId(transactionId) => abort()
   }
 
   private def executeOperations(operations: TransactionOperations): Unit = context.children.foreach(_ ! operations)
@@ -51,12 +50,23 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
   private def initializeCommit(): Unit = {
     context.children.foreach(_ ! TransactionCommitRequest)
     notAgreedWorkersCount = coordinatorConfig.getCohortSize
+
+    val timeout = makeTimeoutForState(WAITING_AGREE)
+    context.system.scheduler.scheduleOnce(coordinatorConfig.getWaitingAgreeTimeout seconds, self, timeout)
     context become tryingToWrite
   }
 
   private def tryingToWrite: Receive = {
     case CommitAgree => receiveAgree()
+    case Failure
+         | CoordinatorTimeout(transactionId, WAITING_AGREE) if equalsCurrentTransactionId(transactionId)  => abort()
   }
+
+  private def equalsCurrentTransactionId(id: Option[UUID]): Boolean = for {
+    currentId <- currentTransactionId
+    otherTransactionId <- id
+    areIDsEqual <- currentId == otherTransactionId
+  } yield areIDsEqual
 
   private def receiveAgree(): Unit = {
     notAgreedWorkersCount -= 1
@@ -89,4 +99,7 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
     context.children.foreach(_ ! Abort)
     finishCurrentTransaction()
   }
+
+  private def makeTimeoutForState(coordinatorState: CoordinatorState) =
+    CoordinatorTimeout(currentTransactionId, coordinatorState)
 }
