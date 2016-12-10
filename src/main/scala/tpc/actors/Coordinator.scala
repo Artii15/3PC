@@ -33,6 +33,7 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
     currentTransactionId = Some(transactionUUID)
     transactionRequester = Some(requester)
 
+    context.children.foreach(_ ! TransactionBeginOrder(currentTransactionId))
     requester ! TransactionBeginAck
 
     val timeout = makeTimeoutForState(INITIALIZING)
@@ -91,6 +92,7 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
   }
 
   private def doCommit(): Unit = {
+    context.children.foreach(_ ! CommitConfirmation)
     transactionRequester.foreach(_ ! CommitConfirmation)
     cleanUpAfterTransaction()
   }
