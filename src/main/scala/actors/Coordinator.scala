@@ -62,11 +62,10 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
          | CoordinatorTimeout(transactionId, WAITING_AGREE) if equalsCurrentTransactionId(transactionId)  => abort()
   }
 
-  private def equalsCurrentTransactionId(id: Option[UUID]): Boolean = for {
+  private def equalsCurrentTransactionId(id: Option[UUID]): Boolean = (for {
     currentId <- currentTransactionId
     otherTransactionId <- id
-    areIDsEqual <- currentId == otherTransactionId
-  } yield areIDsEqual
+  } yield currentId == otherTransactionId).getOrElse(false)
 
   private def receiveAgree(): Unit = {
     notAgreedWorkersCount -= 1
