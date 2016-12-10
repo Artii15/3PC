@@ -24,7 +24,7 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
 
   override def receive: Receive = {
     case TransactionBeginRequest(requester) => beginTransaction(requester)
-    case _ => println("")
+    case unexpectedMessage => println(s"Unexpected message received during receive phase: $unexpectedMessage")
   }
 
   private def beginTransaction(requester: ActorRef): Unit = {
