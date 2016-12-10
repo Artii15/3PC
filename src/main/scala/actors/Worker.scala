@@ -5,6 +5,6 @@ import messages.TransactionCommitRequest
 
 class Worker extends Actor {
   override def receive: Receive = {
-    case commitRequest: TransactionCommitRequest =>
+    case TransactionCommitRequest =>
   }
 }

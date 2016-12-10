@@ -5,6 +5,7 @@ import java.util.UUID
 import akka.actor.{Actor, ActorRef, Props}
 import config.CoordinatorConfig
 import messages._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.duration._
 
@@ -41,8 +42,8 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
   private def initializer: Receive = {
     case operations: TransactionOperations => executeOperations(operations)
     case TransactionCommitRequest => initializeCommit()
-    case Failure
-         | CoordinatorTimeout(transactionId, INITIALIZING) if equalsCurrentTransactionId(transactionId) => abort()
+    case Failure => abort()
+    case CoordinatorTimeout(transactionId, INITIALIZING) if equalsCurrentTransactionId(transactionId) => abort()
   }
 
   private def executeOperations(operations: TransactionOperations): Unit = context.children.foreach(_ ! operations)
@@ -58,14 +59,11 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
 
   private def tryingToWrite: Receive = {
     case CommitAgree => receiveAgree()
-    case Failure
-         | CoordinatorTimeout(transactionId, WAITING_AGREE) if equalsCurrentTransactionId(transactionId)  => abort()
+    case Failure => abort()
+    case CoordinatorTimeout(transactionId, WAITING_AGREE) if equalsCurrentTransactionId(transactionId)  => abort()
   }
 
-  private def equalsCurrentTransactionId(id: Option[UUID]): Boolean = (for {
-    currentId <- currentTransactionId
-    otherTransactionId <- id
-  } yield currentId == otherTransactionId).getOrElse(false)
+  private def equalsCurrentTransactionId(id: Option[UUID]): Boolean = TransactionId.areEqual(currentTransactionId, id)
 
   private def receiveAgree(): Unit = {
     notAgreedWorkersCount -= 1
