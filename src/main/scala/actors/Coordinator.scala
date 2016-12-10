@@ -24,6 +24,7 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
 
   override def receive: Receive = {
     case TransactionBeginRequest(requester) => beginTransaction(requester)
+    case _ => println("")
   }
 
   private def beginTransaction(requester: ActorRef): Unit = {
@@ -31,6 +32,8 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
     val timeoutInformation = CoordinatorTimeout(transactionUUID, INITIALIZING)
     currentTransactionId = Some(transactionUUID)
     transactionRequester = Some(requester)
+
+    requester ! TransactionBeginAck
 
     context.system.scheduler
       .scheduleOnce(coordinatorConfig.getTransactionOperationsTimeout seconds, self, timeoutInformation)
