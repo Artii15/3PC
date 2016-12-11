@@ -8,8 +8,6 @@ import tpc.messages._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.mutable
-import scala.concurrent.duration.DurationInt
-import scala.language.postfixOps
 
 class Worker(config: WorkerConfig) extends Actor {
   import WorkerState._
@@ -24,7 +22,7 @@ class Worker(config: WorkerConfig) extends Actor {
   private def beginTransaction(transactionId: TransactionId): Unit = {
     currentTransactionId = transactionId
     val timeout = WorkerTimeout(currentTransactionId, WAITING_OPERATIONS)
-    context.system.scheduler.scheduleOnce(config.getOperationsExecutingTimeout seconds, self, timeout)
+    context.system.scheduler.scheduleOnce(config.operationsExecutingTimeout, self, timeout)
     context become executingTransaction
   }
 
@@ -49,7 +47,7 @@ class Worker(config: WorkerConfig) extends Actor {
   private def waitForPrepare(): Unit = {
     context.parent ! CommitAgree(currentTransactionId)
     val timeout = WorkerTimeout(currentTransactionId, WAITING_PREPARE)
-    context.system.scheduler.scheduleOnce(config.getWaitingForPrepareTimeout seconds, self, timeout)
+    context.system.scheduler.scheduleOnce(config.waitingForPrepareTimeout, self, timeout)
     context become waitingForPrepare
   }
 
@@ -64,7 +62,7 @@ class Worker(config: WorkerConfig) extends Actor {
     context.parent ! CommitAck(currentTransactionId)
 
     val timeout = WorkerTimeout(currentTransactionId, WAITING_FINAL_COMMIT)
-    context.system.scheduler.scheduleOnce(config.getWaitingFinalCommitTimeout seconds, self, timeout)
+    context.system.scheduler.scheduleOnce(config.waitingFinalCommitTimeout, self, timeout)
 
     context become waitingForFinalCommit
   }

@@ -8,9 +8,7 @@ import tpc.{ConcreteID, EmptyID, TransactionId}
 import tpc.config.CoordinatorConfig
 import tpc.messages._
 
-import scala.language.postfixOps
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 
 class Coordinator(config: CoordinatorConfig) extends Actor {
   import tpc.actors.states.CoordinatorState._
@@ -21,12 +19,12 @@ class Coordinator(config: CoordinatorConfig) extends Actor {
   private var currentTransactionId: TransactionId = EmptyID
 
   override def preStart(): Unit = {
-    val cohortLocations = Stream.continually(config.getCohortLocations).flatten.map(AddressFromURIString.apply)
-    cohortLocations.take(config.getCohortSize).foreach(deploy)
+    val cohortLocations = Stream.continually(config.cohortLocations).flatten.map(AddressFromURIString.apply)
+    cohortLocations.take(config.cohortSize).foreach(deploy)
   }
 
   private def deploy(address: Address): Unit = context.system
-      .actorOf(Props(classOf[Worker], config.getWorkersConfig).withDeploy(Deploy(scope = RemoteScope(address))))
+      .actorOf(Props(classOf[Worker], config.workersConfig).withDeploy(Deploy(scope = RemoteScope(address))))
 
   override def receive: Receive = {
     case TransactionBeginRequest(requester) => beginTransaction(requester)
@@ -40,7 +38,7 @@ class Coordinator(config: CoordinatorConfig) extends Actor {
     requester ! TransactionBeginAck(currentTransactionId)
 
     val timeout = CoordinatorTimeout(currentTransactionId, INITIALIZING)
-    context.system.scheduler.scheduleOnce(config.getTransactionOperationsTimeout seconds, self, timeout)
+    context.system.scheduler.scheduleOnce(config.transactionOperationsTimeout, self, timeout)
     context become initializer
   }
 
@@ -57,10 +55,10 @@ class Coordinator(config: CoordinatorConfig) extends Actor {
 
   private def initializeCommit(commitRequest: TransactionCommitRequest): Unit = {
     context.children.foreach(_ ! commitRequest)
-    notAgreedWorkersCount = config.getCohortSize
+    notAgreedWorkersCount = config.cohortSize
 
     val timeout = CoordinatorTimeout(currentTransactionId, WAITING_AGREE)
-    context.system.scheduler.scheduleOnce(config.getWaitingAgreeTimeout seconds, self, timeout)
+    context.system.scheduler.scheduleOnce(config.waitingAgreeTimeout, self, timeout)
     context become tryingToWrite
   }
 
@@ -75,10 +73,10 @@ class Coordinator(config: CoordinatorConfig) extends Actor {
     notAgreedWorkersCount -= 1
     if(notAgreedWorkersCount == 0) {
       context.children.foreach(_ ! PrepareToCommit(currentTransactionId))
-      pendingAck = config.getCohortSize
+      pendingAck = config.cohortSize
 
       val timeout = CoordinatorTimeout(currentTransactionId, WAITING_ACK)
-      context.system.scheduler.scheduleOnce(config.getWaitingAckTimeout seconds, self, timeout)
+      context.system.scheduler.scheduleOnce(config.waitingAckTimeout, self, timeout)
 
       context become preparingToCommit
     }

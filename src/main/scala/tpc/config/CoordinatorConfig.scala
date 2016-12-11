@@ -1,10 +1,12 @@
 package tpc.config
 
+import scala.concurrent.duration.FiniteDuration
+
 trait CoordinatorConfig {
-  def getWorkersConfig: WorkerConfig
-  def getWaitingAgreeTimeout: Int
-  def getWaitingAckTimeout: Int
-  def getTransactionOperationsTimeout: Int
-  def getCohortSize: Int
-  def getCohortLocations: Iterable[String]
+  val workersConfig: WorkerConfig
+  val waitingAgreeTimeout: FiniteDuration
+  val waitingAckTimeout: FiniteDuration
+  val transactionOperationsTimeout: FiniteDuration
+  val cohortSize: Int
+  val cohortLocations: Iterable[String]
 }

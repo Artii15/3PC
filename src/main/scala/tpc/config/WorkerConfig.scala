@@ -1,7 +1,9 @@
 package tpc.config
 
+import scala.concurrent.duration.FiniteDuration
+
 trait WorkerConfig {
-  def getOperationsExecutingTimeout: Int
-  def getWaitingForPrepareTimeout: Int
-  def getWaitingFinalCommitTimeout: Int
+  val operationsExecutingTimeout: FiniteDuration
+  val waitingForPrepareTimeout: FiniteDuration
+  val waitingFinalCommitTimeout: FiniteDuration
 }
