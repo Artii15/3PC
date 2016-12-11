@@ -2,12 +2,13 @@ package tpc.actors
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, AddressFromURIString, Deploy, Props}
+import akka.remote.RemoteScope
 import tpc.{ConcreteID, EmptyID, TransactionId}
 import tpc.config.CoordinatorConfig
 import tpc.messages._
-import scala.language.postfixOps
 
+import scala.language.postfixOps
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
@@ -21,8 +22,12 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
 
   override def preStart(): Unit = {
     val cohortLocations = Stream.continually(coordinatorConfig.getCohortLocations).flatten
-    cohortLocations.take(coordinatorConfig.getCohortSize)
-      .foreach(actorLocation => context.system.actorOf(Props[Worker], actorLocation))
+    cohortLocations.take(coordinatorConfig.getCohortSize).foreach(deploy)
+  }
+
+  private def deploy(location: String): Unit = {
+    val address = AddressFromURIString(location)
+    context.system.actorOf(Props[Worker].withDeploy(Deploy(scope = RemoteScope(address))))
   }
 
   override def receive: Receive = {
