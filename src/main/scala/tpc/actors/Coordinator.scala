@@ -80,7 +80,7 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
   }
 
   private def preparingToCommit: Receive = {
-    case CommitAck => receiveCommitAck()
+    case CommitAck(transactionId) if transactionId == currentTransactionId => receiveCommitAck()
     case Failure => doCommit()
     case CoordinatorTimeout(transactionId, WAITING_ACK) if transactionId == currentTransactionId => abort()
   }

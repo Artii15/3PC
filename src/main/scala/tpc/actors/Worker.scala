@@ -60,7 +60,7 @@ class Worker(config: WorkerConfig) extends Actor {
   }
 
   private def prepareToCommit(): Unit = {
-    context.parent ! CommitAck
+    context.parent ! CommitAck(currentTransactionId)
 
     val timeout = WorkerTimeout(currentTransactionId, WAITING_FINAL_COMMIT)
     context.system.scheduler.scheduleOnce(config.getWaitingFinalCommitTimeout seconds, self, timeout)
