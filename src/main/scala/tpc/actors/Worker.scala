@@ -74,6 +74,6 @@ class Worker(config: WorkerConfig) extends Actor {
   }
 
   private def abort(): Unit = {
-
+    executedOperations.reverseIterator.foreach(_.rollback())
   }
 }
