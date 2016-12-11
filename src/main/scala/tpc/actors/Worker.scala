@@ -4,11 +4,16 @@ import java.util.UUID
 
 import akka.actor.Actor
 import tpc.TransactionOperation
+import tpc.actors.states.WorkerState
+import tpc.config.WorkerConfig
 import tpc.messages._
 
 import scala.collection.mutable
+import scala.concurrent.duration.DurationInt
 
-class Worker extends Actor {
+class Worker(config: WorkerConfig) extends Actor {
+  import WorkerState._
+
   var currentTransactionId: Option[UUID] = None
   val executedOperations: mutable.MutableList[TransactionOperation] = mutable.MutableList()
 
@@ -18,6 +23,8 @@ class Worker extends Actor {
 
   private def beginTransaction(transactionId: Option[UUID]): Unit = {
     currentTransactionId = transactionId
+    val timeout = WorkerTimeout(currentTransactionId, WAITING_OPERATIONS)
+    context.system.scheduler.scheduleOnce(config.getOperationsExecutingTimeout seconds, self, timeout)
     context become executingTransaction
   }
 
