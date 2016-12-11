@@ -33,7 +33,7 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
     transactionRequester = Some(requester)
 
     context.children.foreach(_ ! TransactionBeginOrder(currentTransactionId))
-    requester ! TransactionBeginAck
+    requester ! TransactionBeginAck(currentTransactionId)
 
     val timeout = CoordinatorTimeout(currentTransactionId, INITIALIZING)
     context.system.scheduler.scheduleOnce(coordinatorConfig.getTransactionOperationsTimeout seconds, self, timeout)
@@ -42,7 +42,8 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
 
   private def initializer: Receive = {
     case operations: TransactionOperations => executeOperations(operations)
-    case TransactionCommitRequest => initializeCommit()
+    case commitRequest @ TransactionCommitRequest(transactionId) if transactionId == currentTransactionId =>
+      initializeCommit(commitRequest)
     case Failure => abort()
     case CoordinatorTimeout(transactionId, INITIALIZING) if transactionId == currentTransactionId => abort()
     case Abort(transactionId) if transactionId == currentTransactionId => abort()
@@ -50,8 +51,8 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
 
   private def executeOperations(operations: TransactionOperations): Unit = context.children.foreach(_ ! operations)
 
-  private def initializeCommit(): Unit = {
-    context.children.foreach(_ ! TransactionCommitRequest)
+  private def initializeCommit(commitRequest: TransactionCommitRequest): Unit = {
+    context.children.foreach(_ ! commitRequest)
     notAgreedWorkersCount = coordinatorConfig.getCohortSize
 
     val timeout = CoordinatorTimeout(currentTransactionId, WAITING_AGREE)
@@ -69,7 +70,7 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
   private def receiveAgree(): Unit = {
     notAgreedWorkersCount -= 1
     if(notAgreedWorkersCount == 0) {
-      context.children.foreach(_ ! PrepareToCommit)
+      context.children.foreach(_ ! PrepareToCommit(currentTransactionId))
       pendingAck = coordinatorConfig.getCohortSize
 
       val timeout = CoordinatorTimeout(currentTransactionId, WAITING_ACK)
@@ -91,8 +92,8 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
   }
 
   private def doCommit(): Unit = {
-    context.children.foreach(_ ! CommitConfirmation)
-    transactionRequester.foreach(_ ! CommitConfirmation)
+    context.children.foreach(_ ! CommitConfirmation(currentTransactionId))
+    transactionRequester.foreach(_ ! CommitConfirmation(currentTransactionId))
     cleanUpAfterTransaction()
   }
 

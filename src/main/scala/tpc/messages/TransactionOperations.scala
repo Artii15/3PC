@@ -1,5 +1,5 @@
 package tpc.messages
 
-import tpc.TransactionOperation
+import tpc.{TransactionId, TransactionOperation}
 
-case class TransactionOperations(operation: TransactionOperation)
+case class TransactionOperations(transactionId: TransactionId, operation: TransactionOperation)

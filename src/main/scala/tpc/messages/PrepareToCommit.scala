@@ -1,3 +1,5 @@
 package tpc.messages
 
-case object PrepareToCommit
+import tpc.TransactionId
+
+case class PrepareToCommit(transactionId: TransactionId)

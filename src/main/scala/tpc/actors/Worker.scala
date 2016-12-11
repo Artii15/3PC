@@ -28,8 +28,8 @@ class Worker(config: WorkerConfig) extends Actor {
   }
 
   private def executingTransaction: Receive = {
-    case TransactionOperations(operation) => executeOperation(operation)
-    case TransactionCommitRequest => waitForPrepare()
+    case TransactionOperations(transactionId, operation) if transactionId == currentTransactionId => executeOperation(operation)
+    case TransactionCommitRequest(transactionId) if transactionId == currentTransactionId => waitForPrepare()
     case WorkerTimeout(transactionId, WAITING_OPERATIONS) if transactionId == currentTransactionId => abort()
     case Failure => abort()
     case Abort(transactionId) if transactionId == currentTransactionId => rollback()
@@ -53,7 +53,7 @@ class Worker(config: WorkerConfig) extends Actor {
   }
 
   private def waitingForPrepare: Receive = {
-    case PrepareToCommit => prepareToCommit()
+    case PrepareToCommit(transactionId) if transactionId == currentTransactionId => prepareToCommit()
     case Abort(transactionId) if transactionId == currentTransactionId => rollback()
     case WorkerTimeout(transactionId, WAITING_PREPARE) if transactionId == currentTransactionId => abort()
     case Failure => abort()
@@ -69,7 +69,7 @@ class Worker(config: WorkerConfig) extends Actor {
   }
 
   private def waitingForFinalCommit: Receive = {
-    case CommitConfirmation => doCommit()
+    case CommitConfirmation(transactionId) if transactionId == currentTransactionId => doCommit()
     case WorkerTimeout(transactionId, WAITING_FINAL_COMMIT) if transactionId == currentTransactionId => doCommit()
     case Failure => doCommit()
     case Abort(transactionId) if transactionId == currentTransactionId => rollback()
