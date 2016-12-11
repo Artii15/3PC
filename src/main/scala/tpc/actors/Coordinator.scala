@@ -45,7 +45,7 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
     case TransactionCommitRequest => initializeCommit()
     case Failure => abort()
     case CoordinatorTimeout(transactionId, INITIALIZING) if transactionId == currentTransactionId => abort()
-    case Abort => abort()
+    case Abort(transactionId) if transactionId == currentTransactionId => abort()
   }
 
   private def executeOperations(operations: TransactionOperations): Unit = context.children.foreach(_ ! operations)
@@ -63,7 +63,7 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
     case CommitAgree => receiveAgree()
     case Failure => abort()
     case CoordinatorTimeout(transactionId, WAITING_AGREE) if transactionId == currentTransactionId  => abort()
-    case Abort => abort()
+    case Abort(transactionId) if transactionId == currentTransactionId => abort()
   }
 
   private def receiveAgree(): Unit = {
@@ -97,8 +97,8 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
   }
 
   private def abort(): Unit = {
-    context.children.foreach(_ ! Abort)
-    transactionRequester.foreach(_! Abort)
+    context.children.foreach(_ ! Abort(currentTransactionId))
+    transactionRequester.foreach(_! Abort(currentTransactionId))
     cleanUpAfterTransaction()
   }
 

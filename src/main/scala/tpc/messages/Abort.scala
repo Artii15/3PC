@@ -1,3 +1,5 @@
 package tpc.messages
 
-case object Abort
+import tpc.TransactionId
+
+case class Abort(transactionId: TransactionId)

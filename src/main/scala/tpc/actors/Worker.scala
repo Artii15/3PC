@@ -32,7 +32,7 @@ class Worker(config: WorkerConfig) extends Actor {
     case TransactionCommitRequest => waitForPrepare()
     case WorkerTimeout(transactionId, WAITING_OPERATIONS) if transactionId == currentTransactionId => abort()
     case Failure => abort()
-    case Abort => rollback()
+    case Abort(transactionId) if transactionId == currentTransactionId => rollback()
   }
 
   private def executeOperation(operation: TransactionOperation): Unit = {
@@ -54,7 +54,7 @@ class Worker(config: WorkerConfig) extends Actor {
 
   private def waitingForPrepare: Receive = {
     case PrepareToCommit => prepareToCommit()
-    case Abort => rollback()
+    case Abort(transactionId) if transactionId == currentTransactionId => rollback()
     case WorkerTimeout(transactionId, WAITING_PREPARE) if transactionId == currentTransactionId => abort()
     case Failure => abort()
   }
@@ -72,7 +72,7 @@ class Worker(config: WorkerConfig) extends Actor {
     case CommitConfirmation => doCommit()
     case WorkerTimeout(transactionId, WAITING_FINAL_COMMIT) if transactionId == currentTransactionId => doCommit()
     case Failure => doCommit()
-    case Abort => rollback()
+    case Abort(transactionId) if transactionId == currentTransactionId => rollback()
   }
 
   private def doCommit(): Unit = {
@@ -81,7 +81,7 @@ class Worker(config: WorkerConfig) extends Actor {
   }
 
   private def abort(): Unit = {
-    context.parent ! Abort
+    context.parent ! Abort(currentTransactionId)
     rollback()
   }
 
