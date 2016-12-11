@@ -1,7 +1,5 @@
 package tpc.actors
 
-import java.util.UUID
-
 import akka.actor.Actor
 import tpc.{EmptyID, TransactionId, TransactionOperation}
 import tpc.actors.states.WorkerState
@@ -43,20 +41,32 @@ class Worker(config: WorkerConfig) extends Actor {
 
   private def waitForCommitDecision(): Unit = {
     context.parent ! CommitAgree
-    context become waitingForCommitDecision
+    val timeout = WorkerTimeout(currentTransactionId, WAITING_PREPARE)
+    context.system.scheduler.scheduleOnce(config.getWaitingForPrepareTimeout seconds, self, timeout)
+    context become waitingForPrepare
   }
 
-  private def waitingForCommitDecision: Receive = {
+  private def waitingForPrepare: Receive = {
     case PrepareToCommit => prepareToCommit()
+    case Abort => abort()
+    case WorkerTimeout(transactionId, WAITING_PREPARE) if transactionId == currentTransactionId => abort()
+    case Failure => abort()
   }
 
   private def prepareToCommit(): Unit = {
     context.parent ! CommitAck
+
+    val timeout = WorkerTimeout(currentTransactionId, WAITING_FINAL_COMMIT)
+    context.system.scheduler.scheduleOnce(config.getWaitingFinalCommitTimeout seconds, self, timeout)
+
     context become waitingForFinalCommit
   }
 
   private def waitingForFinalCommit: Receive = {
     case CommitConfirmation => doCommit()
+    case WorkerTimeout(transactionId, WAITING_FINAL_COMMIT) if transactionId == currentTransactionId => doCommit()
+    case Failure => doCommit()
+    case Abort => abort()
   }
 
   private def doCommit(): Unit = {
