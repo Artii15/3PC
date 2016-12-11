@@ -3,7 +3,7 @@ package tpc.actors
 import java.util.UUID
 
 import akka.actor.{Actor, ActorRef, Props}
-import tpc.TransactionId
+import tpc.{ConcreteID, EmptyID, TransactionId}
 import tpc.config.CoordinatorConfig
 import tpc.messages._
 
@@ -16,7 +16,7 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
   private var notAgreedWorkersCount = 0
   private var pendingAck = 0
   private var transactionRequester: Option[ActorRef] = None
-  private var currentTransactionId: Option[UUID] = None
+  private var currentTransactionId: TransactionId = EmptyID
 
   override def preStart(): Unit = {
     val cohortLocations = Stream.continually(coordinatorConfig.getCohortLocations).flatten
@@ -29,8 +29,7 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
   }
 
   private def beginTransaction(requester: ActorRef): Unit = {
-    val transactionUUID = UUID.randomUUID()
-    currentTransactionId = Some(transactionUUID)
+    currentTransactionId = ConcreteID(UUID.randomUUID())
     transactionRequester = Some(requester)
 
     context.children.foreach(_ ! TransactionBeginOrder(currentTransactionId))
@@ -45,7 +44,7 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
     case operations: TransactionOperations => executeOperations(operations)
     case TransactionCommitRequest => initializeCommit()
     case Failure => abort()
-    case CoordinatorTimeout(transactionId, INITIALIZING) if equalsCurrentTransactionId(transactionId) => abort()
+    case CoordinatorTimeout(transactionId, INITIALIZING) if transactionId == currentTransactionId => abort()
   }
 
   private def executeOperations(operations: TransactionOperations): Unit = context.children.foreach(_ ! operations)
@@ -62,10 +61,8 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
   private def tryingToWrite: Receive = {
     case CommitAgree => receiveAgree()
     case Failure => abort()
-    case CoordinatorTimeout(transactionId, WAITING_AGREE) if equalsCurrentTransactionId(transactionId)  => abort()
+    case CoordinatorTimeout(transactionId, WAITING_AGREE) if transactionId == currentTransactionId  => abort()
   }
-
-  private def equalsCurrentTransactionId(id: Option[UUID]): Boolean = TransactionId.areEqual(currentTransactionId, id)
 
   private def receiveAgree(): Unit = {
     notAgreedWorkersCount -= 1
@@ -83,7 +80,7 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
   private def preparingToCommit: Receive = {
     case CommitAck => receiveCommitAck()
     case Failure => doCommit()
-    case CoordinatorTimeout(transactionId, WAITING_ACK) if equalsCurrentTransactionId(transactionId) => abort()
+    case CoordinatorTimeout(transactionId, WAITING_ACK) if transactionId == currentTransactionId => abort()
   }
 
   private def receiveCommitAck(): Unit = {
@@ -105,10 +102,9 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
 
   private def cleanUpAfterTransaction(): Unit = {
     transactionRequester = None
-    currentTransactionId = None
+    currentTransactionId = EmptyID
     context become receive
   }
 
-  private def makeTimeoutForState(coordinatorState: CoordinatorState) =
-    CoordinatorTimeout(currentTransactionId, coordinatorState)
+  private def makeTimeoutForState(coordinatorState: CoordinatorState) = CoordinatorTimeout(currentTransactionId, coordinatorState)
 }

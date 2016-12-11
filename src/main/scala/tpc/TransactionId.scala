@@ -2,9 +2,15 @@ package tpc
 
 import java.util.UUID
 
-case object TransactionId {
-  def areEqual(idOption1: Option[UUID], idOption2: Option[UUID]): Boolean = (for {
-    id1 <- idOption1
-    id2 <- idOption2
-  } yield id1 == id2).getOrElse(false)
+class TransactionId(private val value: Option[UUID]) {
+  override def equals(obj: scala.Any): Boolean = obj match {
+    case otherId: TransactionId => (for {
+      otherIdRealValue <- otherId.value
+      thisIdRealValue <- value
+    } yield otherIdRealValue == thisIdRealValue).getOrElse(false)
+    case _ => false
+  }
 }
+
+case object EmptyID extends TransactionId(None)
+case class ConcreteID(uUID: UUID) extends TransactionId(Some(uUID))

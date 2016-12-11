@@ -1,5 +1,5 @@
 package tpc.messages
 
-import java.util.UUID
+import tpc.TransactionId
 
-case class TransactionBeginOrder(transactionId: Option[UUID])
+case class TransactionBeginOrder(transactionId: TransactionId)
