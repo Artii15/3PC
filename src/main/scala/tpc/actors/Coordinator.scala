@@ -60,7 +60,7 @@ class Coordinator(coordinatorConfig: CoordinatorConfig) extends Actor {
   }
 
   private def tryingToWrite: Receive = {
-    case CommitAgree => receiveAgree()
+    case CommitAgree(transactionId) if transactionId == currentTransactionId => receiveAgree()
     case Failure => abort()
     case CoordinatorTimeout(transactionId, WAITING_AGREE) if transactionId == currentTransactionId  => abort()
     case Abort(transactionId) if transactionId == currentTransactionId => abort()

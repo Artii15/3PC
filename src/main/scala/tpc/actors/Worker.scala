@@ -46,7 +46,7 @@ class Worker(config: WorkerConfig) extends Actor {
   }
 
   private def waitForPrepare(): Unit = {
-    context.parent ! CommitAgree
+    context.parent ! CommitAgree(currentTransactionId)
     val timeout = WorkerTimeout(currentTransactionId, WAITING_PREPARE)
     context.system.scheduler.scheduleOnce(config.getWaitingForPrepareTimeout seconds, self, timeout)
     context become waitingForPrepare
