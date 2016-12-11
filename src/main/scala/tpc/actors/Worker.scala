@@ -31,8 +31,9 @@ class Worker(config: WorkerConfig) extends Actor {
 
   private def executingTransaction: Receive = {
     case TransactionOperations(operation) => executeOperation(operation)
-    //case WorkerTimeout(transactionId, WAITING_OPERATIONS) if Transaction
     case TransactionCommitRequest => waitForCommitDecision()
+    case WorkerTimeout(transactionId, WAITING_OPERATIONS) if transactionId == currentTransactionId => abort()
+    case Failure => abort()
   }
 
   private def executeOperation(operation: TransactionOperation): Unit = {
@@ -60,5 +61,9 @@ class Worker(config: WorkerConfig) extends Actor {
 
   private def doCommit(): Unit = {
     executedOperations.foreach(_.commit())
+  }
+
+  private def abort(): Unit = {
+
   }
 }
