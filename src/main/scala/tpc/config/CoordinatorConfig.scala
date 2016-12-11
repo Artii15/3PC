@@ -1,6 +1,7 @@
 package tpc.config
 
 trait CoordinatorConfig {
+  def getWorkersConfig: WorkerConfig
   def getWaitingAgreeTimeout: Int
   def getWaitingAckTimeout: Int
   def getTransactionOperationsTimeout: Int
