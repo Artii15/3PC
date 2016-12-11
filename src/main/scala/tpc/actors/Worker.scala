@@ -29,17 +29,23 @@ class Worker(config: WorkerConfig) extends Actor {
 
   private def executingTransaction: Receive = {
     case TransactionOperations(operation) => executeOperation(operation)
-    case TransactionCommitRequest => waitForCommitDecision()
+    case TransactionCommitRequest => waitForPrepare()
     case WorkerTimeout(transactionId, WAITING_OPERATIONS) if transactionId == currentTransactionId => abort()
     case Failure => abort()
+    case Abort => rollback()
   }
 
   private def executeOperation(operation: TransactionOperation): Unit = {
-    operation.execute()
-    executedOperations += operation
+    try {
+      operation.execute()
+      executedOperations += operation
+    }
+    catch {
+      case _: Throwable => abort()
+    }
   }
 
-  private def waitForCommitDecision(): Unit = {
+  private def waitForPrepare(): Unit = {
     context.parent ! CommitAgree
     val timeout = WorkerTimeout(currentTransactionId, WAITING_PREPARE)
     context.system.scheduler.scheduleOnce(config.getWaitingForPrepareTimeout seconds, self, timeout)
@@ -48,7 +54,7 @@ class Worker(config: WorkerConfig) extends Actor {
 
   private def waitingForPrepare: Receive = {
     case PrepareToCommit => prepareToCommit()
-    case Abort => abort()
+    case Abort => rollback()
     case WorkerTimeout(transactionId, WAITING_PREPARE) if transactionId == currentTransactionId => abort()
     case Failure => abort()
   }
@@ -66,14 +72,27 @@ class Worker(config: WorkerConfig) extends Actor {
     case CommitConfirmation => doCommit()
     case WorkerTimeout(transactionId, WAITING_FINAL_COMMIT) if transactionId == currentTransactionId => doCommit()
     case Failure => doCommit()
-    case Abort => abort()
+    case Abort => rollback()
   }
 
   private def doCommit(): Unit = {
     executedOperations.foreach(_.commit())
+    cleanUpAfterTransaction()
   }
 
   private def abort(): Unit = {
+    context.parent ! Abort
+    rollback()
+  }
+
+  private def rollback(): Unit = {
     executedOperations.reverseIterator.foreach(_.rollback())
+    cleanUpAfterTransaction()
+  }
+
+  private def cleanUpAfterTransaction(): Unit = {
+    currentTransactionId = EmptyID
+    executedOperations.clear()
+    context become receive
   }
 }
