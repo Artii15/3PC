@@ -9,6 +9,7 @@ import tpc.messages._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.mutable
 import scala.concurrent.duration.DurationInt
+import scala.language.postfixOps
 
 class Worker(config: WorkerConfig) extends Actor {
   import WorkerState._

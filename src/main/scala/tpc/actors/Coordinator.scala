@@ -6,6 +6,7 @@ import akka.actor.{Actor, ActorRef, Props}
 import tpc.{ConcreteID, EmptyID, TransactionId}
 import tpc.config.CoordinatorConfig
 import tpc.messages._
+import scala.language.postfixOps
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
