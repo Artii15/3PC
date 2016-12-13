@@ -23,8 +23,8 @@ class Coordinator(config: CoordinatorConfig) extends Actor {
     cohortLocations.take(config.cohortSize).foreach(deploy)
   }
 
-  private def deploy(address: Address): Unit = context.system
-      .actorOf(Props(classOf[Worker], config.workersConfig).withDeploy(Deploy(scope = RemoteScope(address))))
+  private def deploy(address: Address): Unit = context
+    .actorOf(Props(classOf[Worker], config.workersConfig).withDeploy(Deploy(scope = RemoteScope(address))))
 
   override def receive: Receive = {
     case TransactionBeginRequest(requester) => beginTransaction(requester)
