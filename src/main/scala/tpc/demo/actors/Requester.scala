@@ -15,14 +15,16 @@ class Requester(coordinator: ActorRef) extends Actor {
   override def receive: Receive = {
     case Start => interact()
     case TransactionBeginAck(transactionId) => beginTransaction(transactionId)
-    case Abort(_) => println("Transaction aborted")
-    case CommitConfirmation(_) => println("Transaction successfully finished")
+    case Abort(_) => println("Transaction aborted"); interact()
+    case CommitConfirmation(_) => println("Transaction successfully finished"); interact()
   }
 
-  @tailrec
-  private def interact(): Unit = StdIn.readLine() match {
-    case "q" => context.system.terminate()
-    case content: String => sendRequest(content); interact()
+  private def interact(): Unit = {
+    println("Type something to commit or q to exit: ")
+    StdIn.readLine() match {
+      case "q" => context.system.terminate()
+      case content: String => sendRequest(content)
+    }
   }
 
   private def sendRequest(content: String): Unit = {
