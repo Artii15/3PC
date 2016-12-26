@@ -1,6 +1,6 @@
 package tpc.messages
 
-import tpc.TransactionId
 import tpc.actors.states.WorkerState.WorkerState
+import tpc.transactions.ID
 
-case class WorkerTimeout(transactionId: TransactionId, workerState: WorkerState)
+case class WorkerTimeout(transactionId: ID, workerState: WorkerState)

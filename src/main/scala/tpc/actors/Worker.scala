@@ -1,10 +1,11 @@
 package tpc.actors
 
 import akka.actor.Actor
-import tpc.{EmptyID, TransactionId, TransactionOperation}
+import tpc.EmptyID
 import tpc.actors.states.WorkerState
 import tpc.config.WorkerConfig
 import tpc.messages._
+import tpc.transactions.{EmptyID, ID, Operation}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.mutable
@@ -12,14 +13,14 @@ import scala.collection.mutable
 class Worker(config: WorkerConfig) extends Actor {
   import WorkerState._
 
-  var currentTransactionId: TransactionId = EmptyID
-  val executedOperations: mutable.MutableList[TransactionOperation] = mutable.MutableList()
+  var currentTransactionId: ID = EmptyID
+  val executedOperations: mutable.MutableList[Operation] = mutable.MutableList()
 
   override def receive: Receive = {
     case TransactionBeginOrder(transactionId) => beginTransaction(transactionId)
   }
 
-  private def beginTransaction(transactionId: TransactionId): Unit = {
+  private def beginTransaction(transactionId: ID): Unit = {
     currentTransactionId = transactionId
     val timeout = WorkerTimeout(currentTransactionId, WAITING_OPERATIONS)
     context.system.scheduler.scheduleOnce(config.operationsExecutingTimeout, self, timeout)
@@ -34,7 +35,7 @@ class Worker(config: WorkerConfig) extends Actor {
     case Abort(transactionId) if transactionId == currentTransactionId => rollback()
   }
 
-  private def executeOperation(operation: TransactionOperation): Unit = {
+  private def executeOperation(operation: Operation): Unit = {
     try {
       operation.execute()
       executedOperations += operation

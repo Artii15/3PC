@@ -4,9 +4,10 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorRef, Address, AddressFromURIString, Deploy, Props}
 import akka.remote.RemoteScope
-import tpc.{ConcreteID, EmptyID, TransactionId}
+import tpc.{ConcreteID, EmptyID}
 import tpc.config.CoordinatorConfig
 import tpc.messages._
+import tpc.transactions.{ConcreteID, EmptyID, ID}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -16,7 +17,7 @@ class Coordinator(config: CoordinatorConfig) extends Actor {
   private var notAgreedWorkersCount = 0
   private var pendingAck = 0
   private var transactionRequester: Option[ActorRef] = None
-  private var currentTransactionId: TransactionId = EmptyID
+  private var currentTransactionId: ID = EmptyID
 
   override def preStart(): Unit = {
     val cohortLocations = Stream.continually(config.cohortLocations).flatten.map(AddressFromURIString.apply)

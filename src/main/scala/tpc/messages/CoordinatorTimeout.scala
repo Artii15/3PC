@@ -1,6 +1,6 @@
 package tpc.messages
 
-import tpc.TransactionId
 import tpc.actors.states.CoordinatorState._
+import tpc.transactions.ID
 
-case class CoordinatorTimeout(transactionId: TransactionId, state: CoordinatorState)
+case class CoordinatorTimeout(transactionId: ID, state: CoordinatorState)

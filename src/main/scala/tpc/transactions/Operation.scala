@@ -1,6 +1,6 @@
-package tpc
+package tpc.transactions
 
-trait TransactionOperation {
+trait Operation {
   def execute(): Unit
   def rollback(): Unit
   def commit(): Unit

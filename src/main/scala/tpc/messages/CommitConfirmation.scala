@@ -1,5 +1,5 @@
 package tpc.messages
 
-import tpc.TransactionId
+import tpc.transactions.ID
 
-case class CommitConfirmation(transactionId: TransactionId)
+case class CommitConfirmation(transactionId: ID)

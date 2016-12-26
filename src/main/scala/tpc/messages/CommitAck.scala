@@ -1,5 +1,5 @@
 package tpc.messages
 
-import tpc.TransactionId
+import tpc.transactions.ID
 
-case class CommitAck(transactionId: TransactionId)
+case class CommitAck(transactionId: ID)
