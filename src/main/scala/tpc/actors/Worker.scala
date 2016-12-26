@@ -1,7 +1,6 @@
 package tpc.actors
 
 import akka.actor.Actor
-import tpc.EmptyID
 import tpc.actors.states.WorkerState
 import tpc.config.WorkerConfig
 import tpc.messages._

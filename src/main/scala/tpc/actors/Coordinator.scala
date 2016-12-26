@@ -4,7 +4,6 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorRef, Address, AddressFromURIString, Deploy, Props}
 import akka.remote.RemoteScope
-import tpc.{ConcreteID, EmptyID}
 import tpc.config.CoordinatorConfig
 import tpc.messages._
 import tpc.transactions.{ConcreteID, EmptyID, ID}
