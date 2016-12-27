@@ -5,13 +5,13 @@ import java.util.UUID
 import akka.actor.{Actor, ActorRef, Address, AddressFromURIString, Deploy, Props}
 import akka.remote.RemoteScope
 import tpc.config.CoordinatorConfig
-import tpc.messages._
+import tpc.messages.logger.CoordinatorState
 import tpc.messages.transactions._
 import tpc.transactions.{ConcreteID, EmptyID, ID}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class Coordinator(config: CoordinatorConfig) extends Actor {
+class Coordinator(config: CoordinatorConfig, logger: ActorRef) extends Actor {
   import tpc.actors.states.CoordinatorState._
 
   private var notAgreedWorkersCount = 0
@@ -40,6 +40,7 @@ class Coordinator(config: CoordinatorConfig) extends Actor {
 
     val timeout = CoordinatorTimeout(currentTransactionId, INITIALIZING)
     context.system.scheduler.scheduleOnce(config.transactionOperationsTimeout, self, timeout)
+    logger ! CoordinatorState(INITIALIZING.toString)
     context become initializer
   }
 
@@ -60,6 +61,7 @@ class Coordinator(config: CoordinatorConfig) extends Actor {
 
     val timeout = CoordinatorTimeout(currentTransactionId, WAITING_AGREE)
     context.system.scheduler.scheduleOnce(config.waitingAgreeTimeout, self, timeout)
+    logger ! CoordinatorState(WAITING_AGREE.toString)
     context become tryingToWrite
   }
 
@@ -78,7 +80,7 @@ class Coordinator(config: CoordinatorConfig) extends Actor {
 
       val timeout = CoordinatorTimeout(currentTransactionId, WAITING_ACK)
       context.system.scheduler.scheduleOnce(config.waitingAckTimeout, self, timeout)
-
+      logger ! CoordinatorState(WAITING_ACK.toString)
       context become preparingToCommit
     }
   }
@@ -97,12 +99,14 @@ class Coordinator(config: CoordinatorConfig) extends Actor {
   private def doCommit(): Unit = {
     context.children.foreach(_ ! CommitConfirmation(currentTransactionId))
     transactionRequester.foreach(_ ! CommitConfirmation(currentTransactionId))
+    logger ! CoordinatorState("COMMITTED")
     cleanUpAfterTransaction()
   }
 
   private def abort(): Unit = {
     context.children.foreach(_ ! Abort(currentTransactionId))
     transactionRequester.foreach(_ ! Abort(currentTransactionId))
+    logger ! CoordinatorState("ABORTED")
     cleanUpAfterTransaction()
   }
 
