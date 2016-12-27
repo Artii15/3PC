@@ -10,3 +10,6 @@ libraryDependencies ++= Seq(
 )
 
 scalacOptions ++= Seq("-feature")
+
+lazy val misraProject = RootProject(uri("git://github.com/Artii15/Misra83.git"))
+lazy val root = Project("root", file(".")) dependsOn misraProject
