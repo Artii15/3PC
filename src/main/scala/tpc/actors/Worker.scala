@@ -1,15 +1,15 @@
 package tpc.actors
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef}
 import tpc.actors.states.WorkerState
 import tpc.config.WorkerConfig
-import tpc.messages._
+import tpc.messages.transactions._
 import tpc.transactions.{EmptyID, ID, Operation}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.mutable
 
-class Worker(config: WorkerConfig) extends Actor {
+class Worker(config: WorkerConfig, logger: ActorRef) extends Actor {
   import WorkerState._
 
   var currentTransactionId: ID = EmptyID

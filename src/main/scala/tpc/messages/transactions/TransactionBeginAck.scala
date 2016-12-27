@@ -1,4 +1,4 @@
-package tpc.messages
+package tpc.messages.transactions
 
 import tpc.transactions.ID
 

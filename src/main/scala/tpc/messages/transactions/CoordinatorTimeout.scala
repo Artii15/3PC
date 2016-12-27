@@ -1,4 +1,4 @@
-package tpc.messages
+package tpc.messages.transactions
 
 import tpc.actors.states.CoordinatorState._
 import tpc.transactions.ID

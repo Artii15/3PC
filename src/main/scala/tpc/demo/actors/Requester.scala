@@ -4,6 +4,7 @@ import akka.actor.{Actor, ActorRef}
 import tpc.demo.messages.Start
 import tpc.demo.operations.AppendLogOperation
 import tpc.messages._
+import tpc.messages.transactions.{TransactionBeginRequest, TransactionCommitRequest, TransactionOperations}
 import tpc.transactions.ID
 
 import scala.annotation.tailrec

@@ -5,6 +5,7 @@ import java.nio.file.{Files, Paths, StandardOpenOption}
 import java.text.SimpleDateFormat
 import java.util.Date
 
+import com.typesafe.config.ConfigFactory
 import tpc.transactions.Operation
 
 class AppendLogOperation(content: String) extends Operation {
@@ -22,11 +23,14 @@ class AppendLogOperation(content: String) extends Operation {
   override def rollback(): Unit = cleanUp()
 
   override def commit(): Unit = {
-    Files.write(Paths.get("/home/artur/log.txt"), Files.readAllBytes(temporaryFilePath), StandardOpenOption.APPEND, StandardOpenOption.CREATE)
+    Files.write(Paths.get(AppendLogOperation.logFilePath),
+      Files.readAllBytes(temporaryFilePath), StandardOpenOption.APPEND, StandardOpenOption.CREATE)
     cleanUp()
   }
 
-  private def cleanUp(): Unit = {
-    temporaryFile.delete()
-  }
+  private def cleanUp(): Unit = temporaryFile.delete()
+}
+
+object AppendLogOperation {
+  private val logFilePath = ConfigFactory.load().getString("application.logFile")
 }

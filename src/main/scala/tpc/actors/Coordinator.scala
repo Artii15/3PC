@@ -6,6 +6,7 @@ import akka.actor.{Actor, ActorRef, Address, AddressFromURIString, Deploy, Props
 import akka.remote.RemoteScope
 import tpc.config.CoordinatorConfig
 import tpc.messages._
+import tpc.messages.transactions._
 import tpc.transactions.{ConcreteID, EmptyID, ID}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -101,7 +102,7 @@ class Coordinator(config: CoordinatorConfig) extends Actor {
 
   private def abort(): Unit = {
     context.children.foreach(_ ! Abort(currentTransactionId))
-    transactionRequester.foreach(_! Abort(currentTransactionId))
+    transactionRequester.foreach(_ ! Abort(currentTransactionId))
     cleanUpAfterTransaction()
   }
 
