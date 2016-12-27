@@ -3,13 +3,14 @@ package tpc.actors
 import akka.actor.{Actor, ActorRef}
 import tpc.actors.states.WorkerState
 import tpc.config.WorkerConfig
+import tpc.messages
 import tpc.messages.transactions._
 import tpc.transactions.{EmptyID, ID, Operation}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.mutable
 
-class Worker(config: WorkerConfig, logger: ActorRef) extends Actor {
+class Worker(config: WorkerConfig, id: Int, logger: ActorRef) extends Actor {
   import WorkerState._
 
   var currentTransactionId: ID = EmptyID
@@ -23,6 +24,7 @@ class Worker(config: WorkerConfig, logger: ActorRef) extends Actor {
     currentTransactionId = transactionId
     val timeout = WorkerTimeout(currentTransactionId, WAITING_OPERATIONS)
     context.system.scheduler.scheduleOnce(config.operationsExecutingTimeout, self, timeout)
+    logger ! messages.logger.WorkerState(id, WAITING_OPERATIONS.toString)
     context become executingTransaction
   }
 
@@ -48,6 +50,7 @@ class Worker(config: WorkerConfig, logger: ActorRef) extends Actor {
     context.parent ! CommitAgree(currentTransactionId)
     val timeout = WorkerTimeout(currentTransactionId, WAITING_PREPARE)
     context.system.scheduler.scheduleOnce(config.waitingForPrepareTimeout, self, timeout)
+    logger ! messages.logger.WorkerState(id, WAITING_PREPARE.toString)
     context become waitingForPrepare
   }
 
@@ -64,6 +67,7 @@ class Worker(config: WorkerConfig, logger: ActorRef) extends Actor {
     val timeout = WorkerTimeout(currentTransactionId, WAITING_FINAL_COMMIT)
     context.system.scheduler.scheduleOnce(config.waitingFinalCommitTimeout, self, timeout)
 
+    logger ! messages.logger.WorkerState(id, WAITING_FINAL_COMMIT.toString)
     context become waitingForFinalCommit
   }
 
@@ -76,6 +80,7 @@ class Worker(config: WorkerConfig, logger: ActorRef) extends Actor {
 
   private def doCommit(): Unit = {
     executedOperations.foreach(_.commit())
+    logger ! messages.logger.WorkerState(id, "COMMITTED")
     cleanUpAfterTransaction()
   }
 
@@ -86,6 +91,7 @@ class Worker(config: WorkerConfig, logger: ActorRef) extends Actor {
 
   private def rollback(): Unit = {
     executedOperations.reverseIterator.foreach(_.rollback())
+    logger ! messages.logger.WorkerState(id, "ABORTED")
     cleanUpAfterTransaction()
   }
 
