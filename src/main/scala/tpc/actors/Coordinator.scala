@@ -21,11 +21,11 @@ class Coordinator(config: CoordinatorConfig, logger: ActorRef) extends Actor {
 
   override def preStart(): Unit = {
     val cohortLocations = Stream.continually(config.cohortLocations).flatten.map(AddressFromURIString.apply)
-    cohortLocations.take(config.cohortSize).foreach(deploy)
+    cohortLocations.zipWithIndex.take(config.cohortSize).foreach { case (address, id) => deploy(address, id) }
   }
 
-  private def deploy(address: Address): Unit = context
-    .actorOf(Props(classOf[Worker], config.workersConfig).withDeploy(Deploy(scope = RemoteScope(address))))
+  private def deploy(address: Address, id: Int): Unit = context
+    .actorOf(Props(classOf[Worker], config.workersConfig, id, logger).withDeploy(Deploy(scope = RemoteScope(address))))
 
   override def receive: Receive = {
     case TransactionBeginRequest(requester) => beginTransaction(requester)

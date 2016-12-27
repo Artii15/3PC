@@ -2,7 +2,7 @@ package tpc.demo
 
 import akka.actor.{ActorSystem, Props}
 import com.typesafe.config.ConfigFactory
-import tpc.actors.Coordinator
+import tpc.actors.{Coordinator, Logger}
 import tpc.config.{CoordinatorConfig, WorkerConfig}
 import tpc.demo.actors.Requester
 import tpc.demo.messages.Start
@@ -18,7 +18,8 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     val actorSystem = ActorSystem(applicationConfig.getString("application.systemName"))
-    val coordinator = actorSystem.actorOf(Props(new Coordinator(coordinatorConfig)))
+    val logger = actorSystem.actorOf(Props[Logger])
+    val coordinator = actorSystem.actorOf(Props(new Coordinator(coordinatorConfig, logger)))
     actorSystem.actorOf(Props(new Requester(coordinator))) ! Start
   }
 
