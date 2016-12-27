@@ -10,8 +10,9 @@ import tpc.messages.transactions._
 import tpc.transactions.{ConcreteID, EmptyID, ID}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.FiniteDuration
 
-class Coordinator(config: CoordinatorConfig, logger: ActorRef) extends Actor {
+class Coordinator(config: CoordinatorConfig, logger: ActorRef) extends Actor with Delayed {
   import tpc.actors.states.CoordinatorState._
 
   private var notAgreedWorkersCount = 0
@@ -41,7 +42,7 @@ class Coordinator(config: CoordinatorConfig, logger: ActorRef) extends Actor {
     val timeout = CoordinatorTimeout(currentTransactionId, INITIALIZING)
     context.system.scheduler.scheduleOnce(config.transactionOperationsTimeout, self, timeout)
     logger ! CoordinatorState(INITIALIZING.toString)
-    context become initializer
+    suspend(FiniteDuration(500, "milliseconds"), initializer)
   }
 
   private def initializer: Receive = {
@@ -62,7 +63,7 @@ class Coordinator(config: CoordinatorConfig, logger: ActorRef) extends Actor {
     val timeout = CoordinatorTimeout(currentTransactionId, WAITING_AGREE)
     context.system.scheduler.scheduleOnce(config.waitingAgreeTimeout, self, timeout)
     logger ! CoordinatorState(WAITING_AGREE.toString)
-    context become tryingToWrite
+    suspend(FiniteDuration(500, "milliseconds"), tryingToWrite)
   }
 
   private def tryingToWrite: Receive = {
@@ -81,7 +82,7 @@ class Coordinator(config: CoordinatorConfig, logger: ActorRef) extends Actor {
       val timeout = CoordinatorTimeout(currentTransactionId, WAITING_ACK)
       context.system.scheduler.scheduleOnce(config.waitingAckTimeout, self, timeout)
       logger ! CoordinatorState(WAITING_ACK.toString)
-      context become preparingToCommit
+      suspend(FiniteDuration(500, "milliseconds"), preparingToCommit)
     }
   }
 
@@ -113,6 +114,6 @@ class Coordinator(config: CoordinatorConfig, logger: ActorRef) extends Actor {
   private def cleanUpAfterTransaction(): Unit = {
     transactionRequester = None
     currentTransactionId = EmptyID
-    context become receive
+    suspend(FiniteDuration(500, "milliseconds"), receive)
   }
 }

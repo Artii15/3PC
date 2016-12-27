@@ -13,13 +13,12 @@ class Requester(coordinator: ActorRef) extends Actor {
   private var contentToAppend: String = ""
 
   override def receive: Receive = {
-    case Start => interact()
+    case Start => println("Type something to commit or q to exit: "); interact()
     case TransactionBeginAck(transactionId) => beginTransaction(transactionId)
     case _: Abort | _: CommitConfirmation => interact()
   }
 
   private def interact(): Unit = {
-    println("Type something to commit or q to exit: ")
     StdIn.readLine() match {
       case "q" => context.system.terminate()
       case content: String => Writer.clearScreen(); sendRequest(content)

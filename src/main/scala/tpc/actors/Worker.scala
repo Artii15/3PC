@@ -9,8 +9,9 @@ import tpc.transactions.{EmptyID, ID, Operation}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.mutable
+import scala.concurrent.duration.FiniteDuration
 
-class Worker(config: WorkerConfig, id: Int, logger: ActorRef) extends Actor {
+class Worker(config: WorkerConfig, id: Int, logger: ActorRef) extends Actor with Delayed {
   import WorkerState._
 
   var currentTransactionId: ID = EmptyID
@@ -25,7 +26,7 @@ class Worker(config: WorkerConfig, id: Int, logger: ActorRef) extends Actor {
     val timeout = WorkerTimeout(currentTransactionId, WAITING_OPERATIONS)
     context.system.scheduler.scheduleOnce(config.operationsExecutingTimeout, self, timeout)
     logger ! messages.logger.WorkerState(id, WAITING_OPERATIONS.toString)
-    context become executingTransaction
+    suspend(FiniteDuration(500, "milliseconds"), executingTransaction)
   }
 
   private def executingTransaction: Receive = {
@@ -51,7 +52,7 @@ class Worker(config: WorkerConfig, id: Int, logger: ActorRef) extends Actor {
     val timeout = WorkerTimeout(currentTransactionId, WAITING_PREPARE)
     context.system.scheduler.scheduleOnce(config.waitingForPrepareTimeout, self, timeout)
     logger ! messages.logger.WorkerState(id, WAITING_PREPARE.toString)
-    context become waitingForPrepare
+    suspend(FiniteDuration(500, "milliseconds"), waitingForPrepare)
   }
 
   private def waitingForPrepare: Receive = {
@@ -68,7 +69,7 @@ class Worker(config: WorkerConfig, id: Int, logger: ActorRef) extends Actor {
     context.system.scheduler.scheduleOnce(config.waitingFinalCommitTimeout, self, timeout)
 
     logger ! messages.logger.WorkerState(id, WAITING_FINAL_COMMIT.toString)
-    context become waitingForFinalCommit
+    suspend(FiniteDuration(500, "milliseconds"), waitingForFinalCommit)
   }
 
   private def waitingForFinalCommit: Receive = {
@@ -98,6 +99,6 @@ class Worker(config: WorkerConfig, id: Int, logger: ActorRef) extends Actor {
   private def cleanUpAfterTransaction(): Unit = {
     currentTransactionId = EmptyID
     executedOperations.clear()
-    context become receive
+    suspend(FiniteDuration(500, "milliseconds"), receive)
   }
 }
