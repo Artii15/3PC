@@ -80,7 +80,7 @@ class Worker(config: WorkerConfig, id: Int, logger: ActorRef) extends Actor with
   }
 
   private def doCommit(): Unit = {
-    executedOperations.foreach(_.commit())
+    executedOperations.foreach(_.commit(id))
     logger ! messages.logger.WorkerState(id, "COMMITTED")
     cleanUpAfterTransaction()
   }

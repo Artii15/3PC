@@ -22,8 +22,8 @@ class AppendLogOperation(content: String) extends Operation {
 
   override def rollback(): Unit = cleanUp()
 
-  override def commit(): Unit = {
-    Files.write(Paths.get(AppendLogOperation.logFilePath),
+  override def commit(executorId: Int): Unit = {
+    Files.write(Paths.get(s"${AppendLogOperation.logFilePath}$executorId"),
       Files.readAllBytes(temporaryFilePath), StandardOpenOption.APPEND, StandardOpenOption.CREATE)
     cleanUp()
   }
