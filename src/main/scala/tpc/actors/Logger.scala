@@ -16,8 +16,8 @@ class Logger extends Actor {
   }
 
   private def printStates(): Unit = {
-    printRow(1, f"${"Coordinator"}%30s" + workersStates.keys.toList.map(id => f"${s"Worker $id"}%30s").mkString(""))
-    printRow(2, f"$coordinatorState%30s" + workersStates.values.map(state => f"$state%30s").mkString(""))
+    printRow(1, f"${"Coordinator"}%20s" + workersStates.keys.toList.map(id => f"${s"Worker $id"}%20s").mkString(""))
+    printRow(2, f"$coordinatorState%20s" + workersStates.values.map(state => f"$state%20s").mkString(""))
   }
 
   private def printRow(rowNumber: Int, content: String): Unit = {

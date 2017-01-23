@@ -32,7 +32,7 @@ object Main {
   private def readCoordinatorConfig(): CoordinatorConfig = new CoordinatorConfig {
     override val workersConfig: WorkerConfig = Main.workersConfig
     override val cohortLocations: Iterable[String] = readList("application.workers.addresses")
-    override val cohortSize: Int = 10
+    override val cohortSize: Int = 5
     override val waitingAckTimeout: FiniteDuration = readTimeout("application.timeouts.coordinator.ack")
     override val waitingAgreeTimeout: FiniteDuration = readTimeout("application.timeouts.coordinator.ack")
     override val transactionOperationsTimeout: FiniteDuration = readTimeout("application.timeouts.coordinator.operations")
