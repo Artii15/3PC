@@ -90,6 +90,7 @@ class Coordinator(config: CoordinatorConfig, logger: ActorRef) extends Actor wit
     case CommitAck(transactionId) if transactionId == currentTransactionId => receiveCommitAck()
     case Failure => doCommit()
     case CoordinatorTimeout(transactionId, WAITING_ACK) if transactionId == currentTransactionId => abort()
+    case Abort(transactionId) if transactionId == currentTransactionId => abort()
   }
 
   private def receiveCommitAck(): Unit = {
