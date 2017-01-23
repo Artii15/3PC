@@ -26,7 +26,7 @@ class Worker(config: WorkerConfig, id: Int, logger: ActorRef) extends Actor with
     val timeout = WorkerTimeout(currentTransactionId, WAITING_OPERATIONS)
     context.system.scheduler.scheduleOnce(config.operationsExecutingTimeout, self, timeout)
     logger ! messages.logger.WorkerState(id, WAITING_OPERATIONS.toString)
-    suspend(FiniteDuration(500, "milliseconds"), executingTransaction)
+    suspend(FiniteDuration(1000, "milliseconds"), executingTransaction)
   }
 
   private def executingTransaction: Receive = {
@@ -52,7 +52,7 @@ class Worker(config: WorkerConfig, id: Int, logger: ActorRef) extends Actor with
     val timeout = WorkerTimeout(currentTransactionId, WAITING_PREPARE)
     context.system.scheduler.scheduleOnce(config.waitingForPrepareTimeout, self, timeout)
     logger ! messages.logger.WorkerState(id, WAITING_PREPARE.toString)
-    suspend(FiniteDuration(500, "milliseconds"), waitingForPrepare)
+    suspend(FiniteDuration(1000, "milliseconds"), waitingForPrepare)
   }
 
   private def waitingForPrepare: Receive = {
@@ -69,7 +69,7 @@ class Worker(config: WorkerConfig, id: Int, logger: ActorRef) extends Actor with
     context.system.scheduler.scheduleOnce(config.waitingFinalCommitTimeout, self, timeout)
 
     logger ! messages.logger.WorkerState(id, WAITING_FINAL_COMMIT.toString)
-    suspend(FiniteDuration(500, "milliseconds"), waitingForFinalCommit)
+    suspend(FiniteDuration(1000, "milliseconds"), waitingForFinalCommit)
   }
 
   private def waitingForFinalCommit: Receive = {
@@ -99,6 +99,6 @@ class Worker(config: WorkerConfig, id: Int, logger: ActorRef) extends Actor with
   private def cleanUpAfterTransaction(): Unit = {
     currentTransactionId = EmptyID
     executedOperations.clear()
-    suspend(FiniteDuration(500, "milliseconds"), receive)
+    suspend(FiniteDuration(1000, "milliseconds"), receive)
   }
 }

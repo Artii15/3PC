@@ -42,7 +42,7 @@ class Coordinator(config: CoordinatorConfig, logger: ActorRef) extends Actor wit
     val timeout = CoordinatorTimeout(currentTransactionId, INITIALIZING)
     context.system.scheduler.scheduleOnce(config.transactionOperationsTimeout, self, timeout)
     logger ! CoordinatorState(INITIALIZING.toString)
-    suspend(FiniteDuration(500, "milliseconds"), initializer)
+    suspend(FiniteDuration(1000, "milliseconds"), initializer)
   }
 
   private def initializer: Receive = {
@@ -63,7 +63,7 @@ class Coordinator(config: CoordinatorConfig, logger: ActorRef) extends Actor wit
     val timeout = CoordinatorTimeout(currentTransactionId, WAITING_AGREE)
     context.system.scheduler.scheduleOnce(config.waitingAgreeTimeout, self, timeout)
     logger ! CoordinatorState(WAITING_AGREE.toString)
-    suspend(FiniteDuration(500, "milliseconds"), tryingToWrite)
+    suspend(FiniteDuration(1000, "milliseconds"), tryingToWrite)
   }
 
   private def tryingToWrite: Receive = {
@@ -82,7 +82,7 @@ class Coordinator(config: CoordinatorConfig, logger: ActorRef) extends Actor wit
       val timeout = CoordinatorTimeout(currentTransactionId, WAITING_ACK)
       context.system.scheduler.scheduleOnce(config.waitingAckTimeout, self, timeout)
       logger ! CoordinatorState(WAITING_ACK.toString)
-      suspend(FiniteDuration(500, "milliseconds"), preparingToCommit)
+      suspend(FiniteDuration(1000, "milliseconds"), preparingToCommit)
     }
   }
 
@@ -114,6 +114,6 @@ class Coordinator(config: CoordinatorConfig, logger: ActorRef) extends Actor wit
   private def cleanUpAfterTransaction(): Unit = {
     transactionRequester = None
     currentTransactionId = EmptyID
-    suspend(FiniteDuration(500, "milliseconds"), receive)
+    suspend(FiniteDuration(1000, "milliseconds"), receive)
   }
 }

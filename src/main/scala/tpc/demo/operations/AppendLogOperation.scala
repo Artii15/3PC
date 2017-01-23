@@ -9,11 +9,11 @@ import com.typesafe.config.ConfigFactory
 import tpc.transactions.Operation
 
 class AppendLogOperation(content: String) extends Operation {
-  private val temporaryFile = File.createTempFile("tpc-log", ".tmp")
-  private val temporaryFilePath = Paths.get(temporaryFile.getAbsolutePath)
+  private var temporaryFile: Option[File] = None
 
   override def execute(): Unit = {
-    val fileWriter = new BufferedWriter(new FileWriter(temporaryFile))
+    temporaryFile = Some(generateTempFile())
+    val fileWriter = new BufferedWriter(new FileWriter(temporaryFile.get))
     val formattedDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())
     fileWriter.write(s"$formattedDate\n")
     fileWriter.write(s"$content\n\n")
@@ -23,12 +23,16 @@ class AppendLogOperation(content: String) extends Operation {
   override def rollback(): Unit = cleanUp()
 
   override def commit(executorId: Int): Unit = {
-    Files.write(Paths.get(s"${AppendLogOperation.logFilePath}$executorId"),
-      Files.readAllBytes(temporaryFilePath), StandardOpenOption.APPEND, StandardOpenOption.CREATE)
+    temporaryFile.foreach(tempFile => {
+      Files.write(Paths.get(s"${AppendLogOperation.logFilePath}$executorId"),
+        Files.readAllBytes(Paths.get(tempFile.getAbsolutePath)), StandardOpenOption.APPEND, StandardOpenOption.CREATE)
+    })
     cleanUp()
   }
 
-  private def cleanUp(): Unit = temporaryFile.delete()
+  private def cleanUp(): Unit = temporaryFile.map(_.delete())
+
+  private def generateTempFile() = File.createTempFile("tpc-log", ".tmp")
 }
 
 object AppendLogOperation {
